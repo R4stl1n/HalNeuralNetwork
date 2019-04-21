@@ -1,11 +1,11 @@
 package networks
 
 import (
-	"HalNeuralNetwork/enums"
-	"HalNeuralNetwork/models"
-	"HalNeuralNetwork/util"
 	"errors"
 	"fmt"
+	"github.com/R4stl1n/HalNeuralNetwork/enums"
+	"github.com/R4stl1n/HalNeuralNetwork/models"
+	"github.com/R4stl1n/HalNeuralNetwork/util"
 	uuid "github.com/satori/go.uuid"
 	"math/rand"
 )
