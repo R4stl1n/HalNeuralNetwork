@@ -48,7 +48,7 @@ func (gradientDecentNetwork *GradientDescentNetwork) AddNeuralLayer(neuralLayer 
 		neuralLayer.Index = 0
 
 	} else {
-		neuralLayer.Index = len(gradientDecentNetwork.NeuralLayers) + 1
+		neuralLayer.Index = len(gradientDecentNetwork.NeuralLayers)
 	}
 
 	// All good to go lets add the layer
@@ -181,7 +181,6 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 
 	}
 
-
 	for i := len(gradientDecentNetwork.NeuralLayers) - 1; i >= 1; i-- {
 
 		var errorValues []float64
@@ -200,7 +199,7 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 
 					neuralConnection := models.FindNeuralConnection(currentLayerNodeElement.UUID, nextLayerNodeElement.UUID, gradientDecentNetwork.NeuralConnections)
 
-					errorValue =  errorValue +(neuralConnection.Weight*nextLayerNodeElement.ErrorDelta)
+					errorValue = errorValue + (neuralConnection.Weight * nextLayerNodeElement.ErrorDelta)
 				}
 
 				errorValues = append(errorValues, errorValue)
@@ -222,7 +221,7 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 
 	gradientDecentNetwork.setNewWeights()
 
-	return errors.New("no output layer found"), &gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1]
+	return nil, nil
 }
 
 func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
@@ -237,17 +236,30 @@ func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
 			previousLayer := gradientDecentNetwork.NeuralLayers[neuralIndex-1]
 
 			for _, currentNode := range neuralElement.NeuralNodes {
-				for _, previousLayer := range previousLayer.NeuralNodes {
 
-					neuralConnection := models.FindNeuralConnection(previousLayer.UUID, currentNode.UUID, gradientDecentNetwork.NeuralConnections)
+				for _, previousLayerElement := range previousLayer.NeuralNodes {
+
+					neuralConnection := models.FindNeuralConnection(previousLayerElement.UUID, currentNode.UUID, gradientDecentNetwork.NeuralConnections)
 
 					for neuralConnectionIndex, neuralConnectionElement := range gradientDecentNetwork.NeuralConnections {
 
 						if neuralConnectionElement.UUID == neuralConnection.UUID {
 
-							gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight  + (0.1 * currentNode.ErrorDelta * previousLayer.OutputValue)
+							gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight + (0.05 * currentNode.ErrorDelta * previousLayerElement.OutputValue)
 
 						}
+					}
+
+				}
+
+				neuralConnection := models.FindNeuralConnection(previousLayer.NeuralNodes[len(previousLayer.NeuralNodes)-1].UUID, currentNode.UUID, gradientDecentNetwork.NeuralConnections)
+
+				for neuralConnectionIndex, neuralConnectionElement := range gradientDecentNetwork.NeuralConnections {
+
+					if neuralConnectionElement.UUID == neuralConnection.UUID {
+
+						gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight + (0.05 * currentNode.ErrorDelta)
+
 					}
 				}
 			}

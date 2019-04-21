@@ -44,7 +44,7 @@ func (neuralNode *NeuralNode) CalculateOutput(inputNodes []NeuralNode, neuralCon
 
 		for _, element := range inputNodes {
 			neuralConnection := FindNeuralConnection(element.UUID, neuralNode.UUID, neuralConnections)
-			calculatedOutput = calculatedOutput + (element.OutputValue * neuralConnection.Weight)
+			calculatedOutput = calculatedOutput + (neuralConnection.Weight * element.OutputValue)
 		}
 
 		calculatedOutput = calculatedOutput + neuralNode.Bias

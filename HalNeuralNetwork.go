@@ -42,7 +42,6 @@ func main() {
 	}
 
 	hiddenLayerAddError := gradientNetwork.AddNeuralLayer(hiddenLayer)
-
 	if hiddenLayerAddError != nil {
 		fmt.Println(hiddenLayerAddError)
 	}
@@ -60,7 +59,7 @@ func main() {
 		fmt.Println(createNeuralConnectionsError)
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10000; i++ {
 
 		_, _ = gradientNetwork.Train(inputs, expected)
 
