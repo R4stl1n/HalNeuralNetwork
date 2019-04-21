@@ -16,6 +16,8 @@ type NeuralNode struct {
 
 	Type           enums.NeuralNodeType       `json:"node_type" form:"node_type" query:"node_type"`
 	ActivationType enums.NeuralActivationType `json:"activation_type" form:"activation_type" query:"activation_type"`
+
+	ErrorDelta float64 `json:"error_delta" form:"error_delta" query:"error_delta"`
 }
 
 func CreateNeuralNode(outputValue float64, bias float64, nodeType enums.NeuralNodeType, activationType enums.NeuralActivationType) *NeuralNode {
@@ -53,6 +55,8 @@ func (neuralNode *NeuralNode) CalculateOutput(inputNodes []NeuralNode, neuralCon
 			calculatedOutput = util.CalculateSigmoid(calculatedOutput)
 		} else if neuralNode.ActivationType == enums.NeuralActivationRelu {
 			calculatedOutput = util.CalculateRelu(calculatedOutput)
+		} else if neuralNode.ActivationType == enums.NeuralActivationSigmoidTransfer {
+			calculatedOutput = util.CalculateSigmoidTransferDerivative(calculatedOutput)
 		}
 
 	} else {

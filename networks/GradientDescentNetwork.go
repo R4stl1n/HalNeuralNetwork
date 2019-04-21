@@ -175,123 +175,83 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 
 		}
 
+		for _, element := range gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1].NeuralNodes {
+			fmt.Println("Training Input: ", data[0], data[1], " -> ", element.OutputValue)
+		}
+
 	}
 
-	// Calculate the error values
-	var newWeightsBackwards [][]float64
-	var deltaOutputSumSaved []float64
 
-	// Grab the list of differences
-	// Iterate backwards
 	for i := len(gradientDecentNetwork.NeuralLayers) - 1; i >= 1; i-- {
 
-		var sumSigmodePrime float64
-		var deltaOutputSum float64
-		var deltaHiddenSum []float64
+		var errorValues []float64
 
-		if i >= 0 && i != 1 {
+		currentLayer := gradientDecentNetwork.NeuralLayers[i]
 
-			var tempOutputWeights []float64
+		if i != len(gradientDecentNetwork.NeuralLayers)-1 {
 
-			currentLayer := gradientDecentNetwork.NeuralLayers[i]
-			previousLayer := gradientDecentNetwork.NeuralLayers[i-1]
+			nextLayer := gradientDecentNetwork.NeuralLayers[i+1]
 
-			for index, nodeElement := range currentLayer.NeuralNodes {
+			for _, currentLayerNodeElement := range currentLayer.NeuralNodes {
 
-				errorValue := expectedResults[index] - nodeElement.OutputValue
+				errorValue := 0.0
 
-				sumSigmodePrime = util.CalculateSigmoidPrime(nodeElement.BeforeActivationValue)
+				for _, nextLayerNodeElement := range nextLayer.NeuralNodes {
 
-				deltaOutputSum = sumSigmodePrime * errorValue
+					neuralConnection := models.FindNeuralConnection(currentLayerNodeElement.UUID, nextLayerNodeElement.UUID, gradientDecentNetwork.NeuralConnections)
 
-				for _, previousNodeElement := range previousLayer.NeuralNodes {
-					tempOutputWeights = append(tempOutputWeights, deltaOutputSum/previousNodeElement.OutputValue)
+					errorValue =  errorValue +(neuralConnection.Weight*nextLayerNodeElement.ErrorDelta)
 				}
 
-				if i == len(gradientDecentNetwork.NeuralLayers)-1 {
-					deltaOutputSumSaved = append(deltaOutputSumSaved, deltaOutputSum)
-				}
-
+				errorValues = append(errorValues, errorValue)
 			}
-
-			newWeightsBackwards = append(newWeightsBackwards, tempOutputWeights)
 
 		} else {
 
-			// Hit the input layer do special math
-			inputLayer := gradientDecentNetwork.NeuralLayers[0]
-			outputLayer := gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1]
-			// Hidden Layer Before Output Layer
-			workingLayer := gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-2]
-
-			var tempValues []float64
-			var tempDeriv []float64
-
-			for _, workingNode := range workingLayer.NeuralNodes {
-
-				for indexOutput, outputNode := range outputLayer.NeuralNodes {
-					neuralConnection := models.FindNeuralConnection(workingNode.UUID, outputNode.UUID, gradientDecentNetwork.NeuralConnections)
-
-					tempValues = append(tempValues, deltaOutputSumSaved[indexOutput]/neuralConnection.Weight)
-					tempDeriv = append(tempDeriv, util.CalculateSigmoidPrime(outputNode.BeforeActivationValue))
-				}
+			for nodeIndex, node := range currentLayer.NeuralNodes {
+				errorValues = append(errorValues, expectedResults[nodeIndex]-node.OutputValue)
 			}
 
-			for tempIndex, tempValue := range tempValues {
-				deltaHiddenSum = append(deltaHiddenSum, tempValue*tempDeriv[tempIndex])
-			}
-
-			var tempWeights []float64
-			for _, deltaSum := range deltaHiddenSum {
-				for _, input := range inputLayer.NeuralNodes {
-					tempWeights = append(tempWeights, deltaSum/input.OutputValue)
-				}
-			}
-
-			newWeightsBackwards = append(newWeightsBackwards, tempWeights)
 		}
+
+		for nodeIndex, node := range currentLayer.NeuralNodes {
+			gradientDecentNetwork.NeuralLayers[i].NeuralNodes[nodeIndex].ErrorDelta = errorValues[nodeIndex] * util.CalculateSigmoidTransferDerivative(node.OutputValue)
+		}
+
 	}
 
-	fmt.Println(util.ReverseFloat64Array(newWeightsBackwards))
-
-	gradientDecentNetwork.setNewWeights(util.ReverseFloat64Array(newWeightsBackwards))
+	gradientDecentNetwork.setNewWeights()
 
 	return errors.New("no output layer found"), &gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1]
 }
 
-func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights(newWeights [][] float64) {
+func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
 
-	weightIndexY := 0
-	weightIndexX := 0
 	for neuralIndex, neuralElement := range gradientDecentNetwork.NeuralLayers {
 
-		if neuralIndex == len(gradientDecentNetwork.NeuralLayers)-1 {
+		if neuralIndex == 0 {
 			// No more connections to make
+
 		} else {
 
-			nextLayer := gradientDecentNetwork.NeuralLayers[neuralIndex+1]
+			previousLayer := gradientDecentNetwork.NeuralLayers[neuralIndex-1]
 
 			for _, currentNode := range neuralElement.NeuralNodes {
-				for _, nextNode := range nextLayer.NeuralNodes {
+				for _, previousLayer := range previousLayer.NeuralNodes {
 
-					neuralConnection := models.FindNeuralConnection(currentNode.UUID, nextNode.UUID, gradientDecentNetwork.NeuralConnections)
+					neuralConnection := models.FindNeuralConnection(previousLayer.UUID, currentNode.UUID, gradientDecentNetwork.NeuralConnections)
 
 					for neuralConnectionIndex, neuralConnectionElement := range gradientDecentNetwork.NeuralConnections {
 
 						if neuralConnectionElement.UUID == neuralConnection.UUID {
-							if weightIndexY == 0 {
-								gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight - newWeights[weightIndexY][weightIndexX]
-							} else {
-								gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = newWeights[weightIndexY][weightIndexX]
-							}
-							weightIndexX = weightIndexX + 1
+
+							gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight  + (0.1 * currentNode.ErrorDelta * previousLayer.OutputValue)
+
 						}
 					}
 				}
 			}
 
-			weightIndexY = weightIndexY + 1
-			weightIndexX = 0
 		}
 	}
 

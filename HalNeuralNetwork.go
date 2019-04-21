@@ -60,7 +60,7 @@ func main() {
 		fmt.Println(createNeuralConnectionsError)
 	}
 
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 1000; i++ {
 
 		_, _ = gradientNetwork.Train(inputs, expected)
 

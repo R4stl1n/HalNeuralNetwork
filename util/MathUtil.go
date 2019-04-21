@@ -10,6 +10,10 @@ func CalculateSigmoidPrime(input float64) float64 {
 	return CalculateSigmoid(input) * (1 - CalculateSigmoid(input))
 }
 
+func CalculateSigmoidTransferDerivative(input float64) float64 {
+	return input * (1.0 - input)
+}
+
 func CalculateRelu(input float64) float64 {
 	return math.Max(0, input)
 }
