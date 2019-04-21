@@ -43,7 +43,7 @@ func CreateNeuralLayerFromInputs(inputValues [][]float64) *NeuralLayer {
 	var neuralNodes []NeuralNode
 
 	for i := 0; i < len(inputValues[0]); i++ {
-		neuralNodes = append(neuralNodes, *CreateNeuralNode(0, 0, enums.NeuralNodeInput, enums.NeuralActivationNone))
+		neuralNodes = append(neuralNodes, *CreateNeuralNode(0, 0, enums.NeuralNodeInput, enums.NeuralActivationSigmoid))
 	}
 
 	return &NeuralLayer{

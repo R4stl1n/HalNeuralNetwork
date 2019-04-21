@@ -59,18 +59,18 @@ func main() {
 		fmt.Println(createNeuralConnectionsError)
 	}
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 100000; i++ {
 
 		_, _ = gradientNetwork.Train(inputs, expected)
 
 	}
 
-	for _, input := range inputs {
+	for inputIndex, input := range inputs {
 
 		_, output := gradientNetwork.ProcessData(input)
 
 		for _, element := range output.NeuralNodes {
-			fmt.Println("Input: ", input[0], input[1], " -> ", element.OutputValue)
+			fmt.Println("Input: [", input[0], input[1], "] , Expected: [" , expected[inputIndex], "] -> ", element.OutputValue)
 
 		}
 	}

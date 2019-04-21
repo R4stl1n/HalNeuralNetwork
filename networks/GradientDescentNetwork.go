@@ -181,8 +181,8 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 
 	}
 
-	for i := len(gradientDecentNetwork.NeuralLayers) - 1; i >= 1; i-- {
 
+	for i := len(gradientDecentNetwork.NeuralLayers) - 1; i >= 0; i-- {
 		var errorValues []float64
 
 		currentLayer := gradientDecentNetwork.NeuralLayers[i]
@@ -200,9 +200,10 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 					neuralConnection := models.FindNeuralConnection(currentLayerNodeElement.UUID, nextLayerNodeElement.UUID, gradientDecentNetwork.NeuralConnections)
 
 					errorValue = errorValue + (neuralConnection.Weight * nextLayerNodeElement.ErrorDelta)
+
+					errorValues = append(errorValues, errorValue)
 				}
 
-				errorValues = append(errorValues, errorValue)
 			}
 
 		} else {
@@ -213,9 +214,12 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 
 		}
 
+		fmt.Println(errorValues)
+
 		for nodeIndex, node := range currentLayer.NeuralNodes {
 			gradientDecentNetwork.NeuralLayers[i].NeuralNodes[nodeIndex].ErrorDelta = errorValues[nodeIndex] * util.CalculateSigmoidTransferDerivative(node.OutputValue)
 		}
+
 
 	}
 
@@ -245,7 +249,7 @@ func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
 
 						if neuralConnectionElement.UUID == neuralConnection.UUID {
 
-							gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight + (0.05 * currentNode.ErrorDelta * previousLayerElement.OutputValue)
+							gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight + (0.1 * currentNode.ErrorDelta * previousLayerElement.OutputValue)
 
 						}
 					}
@@ -258,7 +262,7 @@ func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
 
 					if neuralConnectionElement.UUID == neuralConnection.UUID {
 
-						gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight + (0.05 * currentNode.ErrorDelta)
+						gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight + (0.1 * currentNode.ErrorDelta)
 
 					}
 				}
