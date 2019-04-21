@@ -2,7 +2,7 @@ package models
 
 import (
 	"errors"
-	"github.com/R4stl1n/HalNeuralNetwork/enums"
+	"github.com/r4stl1n/HalNeuralNetwork/enums"
 	uuid "github.com/satori/go.uuid"
 )
 
