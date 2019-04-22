@@ -59,7 +59,17 @@ func main() {
 		fmt.Println(createNeuralConnectionsError)
 	}
 
-	for i := 0; i < 100000; i++ {
+	newGradientNetwork := gradientNetwork.LoadNetwork()
+
+	gradientNetwork = &newGradientNetwork
+
+	// Hard init nodes
+
+	_, _ = gradientNetwork.Train(inputs, expected)
+
+	gradientNetwork.SaveNetwork()
+
+	for i := 0; i < 100; i++ {
 
 		_, _ = gradientNetwork.Train(inputs, expected)
 

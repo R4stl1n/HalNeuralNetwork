@@ -1,13 +1,16 @@
 package networks
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/r4stl1n/HalNeuralNetwork/enums"
 	"github.com/r4stl1n/HalNeuralNetwork/models"
 	"github.com/r4stl1n/HalNeuralNetwork/util"
 	uuid "github.com/satori/go.uuid"
+	"io/ioutil"
 	"math/rand"
+	"os"
 )
 
 type GradientDescentNetwork struct {
@@ -136,7 +139,6 @@ func (gradientDecentNetwork *GradientDescentNetwork) ProcessData(data []float64)
 }
 
 func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]float64, expectedResults []float64) (error, *models.NeuralLayer) {
-
 	// First check if we have at least three layers in our network
 	if len(gradientDecentNetwork.NeuralLayers) < 3 {
 		return errors.New("not enough layers to begin processing"), nil
@@ -175,57 +177,95 @@ func (gradientDecentNetwork *GradientDescentNetwork) Train(trainingData [][]floa
 
 		}
 
-		for _, element := range gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1].NeuralNodes {
-			fmt.Println("Training Input: ", data[0], data[1], " -> ", element.OutputValue)
-		}
-
 	}
 
+	outputLayer := gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1]
 
-	for i := len(gradientDecentNetwork.NeuralLayers) - 1; i >= 0; i-- {
-		var errorValues []float64
+
+	fmt.Println("OUTPUT: ", outputLayer.NeuralNodes[0].OutputValue)
+
+	var newWeightsBackwards [][]float64
+	var outputDeltaOutputSum float64
+	var deltaWeightsFull []float64
+
+	for i := len(gradientDecentNetwork.NeuralLayers) - 1; i >= 1; i-- {
 
 		currentLayer := gradientDecentNetwork.NeuralLayers[i]
+		previousLayer := gradientDecentNetwork.NeuralLayers[i-1]
 
-		if i != len(gradientDecentNetwork.NeuralLayers)-1 {
+		var tempOutputWeights []float64
 
-			nextLayer := gradientDecentNetwork.NeuralLayers[i+1]
+		if i >= 0 && i != 1 {
 
-			for _, currentLayerNodeElement := range currentLayer.NeuralNodes {
+			for index, nodeElement := range currentLayer.NeuralNodes {
 
-				errorValue := 0.0
+				errorValue := expectedResults[index] - nodeElement.OutputValue
 
-				for _, nextLayerNodeElement := range nextLayer.NeuralNodes {
+				fmt.Println("ERRVAL: ", errorValue)
+				sumSigmodePrime := util.CalculateSigmoidPrime(nodeElement.BeforeActivationValue)
 
-					neuralConnection := models.FindNeuralConnection(currentLayerNodeElement.UUID, nextLayerNodeElement.UUID, gradientDecentNetwork.NeuralConnections)
+				deltaOutputSum := sumSigmodePrime * errorValue
 
-					errorValue = errorValue + (neuralConnection.Weight * nextLayerNodeElement.ErrorDelta)
+				fmt.Println("DELTAOUTPUTSUM: ", deltaOutputSum)
 
-					errorValues = append(errorValues, errorValue)
+				for previousNodeIndex, previousNodeElement := range previousLayer.NeuralNodes {
+					tempOutputWeights = append(tempOutputWeights, deltaOutputSum/previousNodeElement.OutputValue)
+					fmt.Println("HR", previousNodeIndex, ": ", previousNodeElement.OutputValue)
 				}
 
+				if nodeElement.Type == enums.NeuralNodeOutput {
+					outputDeltaOutputSum = deltaOutputSum
+				}
 			}
+
+			newWeightsBackwards = append(newWeightsBackwards, tempOutputWeights)
 
 		} else {
+			// Hit the input layer do special math
+			inputLayer := gradientDecentNetwork.NeuralLayers[0]
+			outputLayer := gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1]
+			hiddenBeforeLast := gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-2]
+			// Hidden Layer Before Output Layer
 
-			for nodeIndex, node := range currentLayer.NeuralNodes {
-				errorValues = append(errorValues, expectedResults[nodeIndex]-node.OutputValue)
+			var deltaHiddenSumArray []float64
+
+			for _, hiddenBeforeLastElement := range hiddenBeforeLast.NeuralNodes {
+
+				for _, outputLayerElement := range outputLayer.NeuralNodes {
+					neuralConnection := models.FindNeuralConnection(hiddenBeforeLastElement.UUID, outputLayerElement.UUID, gradientDecentNetwork.NeuralConnections)
+
+					deltaHiddenSumArray = append(deltaHiddenSumArray, (outputDeltaOutputSum/neuralConnection.Weight)*util.CalculateSigmoidPrime(hiddenBeforeLastElement.BeforeActivationValue))
+
+				}
 			}
 
+			var deltaWeights []float64
+
+			for _, inputLayerElement := range inputLayer.NeuralNodes {
+				for _, deltaHiddenSumElement := range deltaHiddenSumArray {
+
+					deltaWeights = append(deltaWeights, deltaHiddenSumElement / inputLayerElement.OutputValue)
+
+				}
+			}
+
+			fmt.Println("DW: ",deltaWeights)
+			deltaWeightsFull = deltaWeights
 		}
-
-		fmt.Println(errorValues)
-
-		for nodeIndex, node := range currentLayer.NeuralNodes {
-			gradientDecentNetwork.NeuralLayers[i].NeuralNodes[nodeIndex].ErrorDelta = errorValues[nodeIndex] * util.CalculateSigmoidTransferDerivative(node.OutputValue)
-		}
-
 
 	}
 
-	gradientDecentNetwork.setNewWeights()
+	var newFullWeights [][]float64
 
-	return nil, nil
+
+	newFullWeights = append(newFullWeights, deltaWeightsFull)
+	newFullWeights = append(newFullWeights, newWeightsBackwards...)
+
+	fmt.Println("New Deltas: ",newFullWeights)
+	gradientDecentNetwork.processWeightDeltas(newFullWeights)
+
+
+	return errors.New("no output layer found"), &gradientDecentNetwork.NeuralLayers[len(gradientDecentNetwork.NeuralLayers)-1]
 }
 
 func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
@@ -233,7 +273,6 @@ func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
 	for neuralIndex, neuralElement := range gradientDecentNetwork.NeuralLayers {
 
 		if neuralIndex == 0 {
-			// No more connections to make
 
 		} else {
 
@@ -270,5 +309,61 @@ func (gradientDecentNetwork *GradientDescentNetwork) setNewWeights() {
 
 		}
 	}
+
+}
+
+func (gradientDecentNetwork *GradientDescentNetwork) processWeightDeltas(newDeltas [][]float64) {
+
+	fmt.Println("NEWDELTASTOSAVE:", newDeltas)
+	for networkLayerIndex, networkLayerElement := range gradientDecentNetwork.NeuralLayers {
+		usedIndex := 0
+
+		for _, nodeElement := range networkLayerElement.NeuralNodes {
+
+
+			for neuralConnectionIndex, neuralConnectElement := range gradientDecentNetwork.NeuralConnections {
+				if neuralConnectElement.FromNodeUUID == nodeElement.UUID {
+					fmt.Print("OLD-W: ", gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight)
+					gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight = gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight +
+						newDeltas[networkLayerIndex][usedIndex]
+
+					fmt.Println("       NEW-W:", gradientDecentNetwork.NeuralConnections[neuralConnectionIndex].Weight)
+					usedIndex = usedIndex + 1
+				}
+
+			}
+
+		}
+
+	}
+
+}
+
+func (gradientDecentNetwork *GradientDescentNetwork) SaveNetwork() {
+
+	networkJson, _ := json.MarshalIndent(&gradientDecentNetwork, "", "    ")
+
+	err := ioutil.WriteFile("output.json", networkJson, 0644)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (gradientDecentNetwork *GradientDescentNetwork) LoadNetwork() GradientDescentNetwork {
+
+	var gdN GradientDescentNetwork
+	configFile, err := os.Open("StartPoint.json")
+
+	defer configFile.Close()
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	jsonParser := json.NewDecoder(configFile)
+	_ = jsonParser.Decode(&gdN)
+
+	return gdN
 
 }

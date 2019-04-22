@@ -80,6 +80,7 @@ func (neuralLayer *NeuralLayer) CalculateNodeOutputs(inputLayer *NeuralLayer, ne
 
 		neuralLayer.NeuralNodes[nodeIndex].OutputValue = outputValue
 		neuralLayer.NeuralNodes[nodeIndex].BeforeActivationValue = beforeActivationValue
+
 	}
 
 	return nil

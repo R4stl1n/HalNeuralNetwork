@@ -47,9 +47,10 @@ func (neuralNode *NeuralNode) CalculateOutput(inputNodes []NeuralNode, neuralCon
 			calculatedOutput = calculatedOutput + (neuralConnection.Weight * element.OutputValue)
 		}
 
-		calculatedOutput = calculatedOutput + neuralNode.Bias
 
-		beforeActivationValue = calculatedOutput
+
+		beforeActivationValue = calculatedOutput + neuralNode.Bias
+		calculatedOutput = calculatedOutput + neuralNode.Bias
 
 		if neuralNode.ActivationType == enums.NeuralActivationSigmoid {
 			calculatedOutput = util.CalculateSigmoid(calculatedOutput)

@@ -3,7 +3,7 @@ package util
 import "math"
 
 func CalculateSigmoid(input float64) float64 {
-	return 1 / (1 + math.Exp(input))
+	return 1 / (1 + math.Exp(-input))
 }
 
 func CalculateSigmoidPrime(input float64) float64 {
